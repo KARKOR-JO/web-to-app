@@ -390,46 +390,93 @@ export default function Import() {
         </CardContent>
       </Card>
 
-      {/* اختيار التاريخ والراتب الأساسي */}
-      <Card>
+      {/* إدخال الراتب الأساسي - خانة فعالة */}
+      <Card className="border-2 border-primary/20 bg-primary/5">
         <CardHeader>
-          <CardTitle>إعدادات الحساب</CardTitle>
-          <CardDescription>حدد التاريخ والراتب الأساسي لحساب مستحقات الوقت الإضافي</CardDescription>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <span className="text-2xl">💰</span>
+            إدخال الراتب الأساسي
+          </CardTitle>
+          <CardDescription className="text-base">
+            أدخل الراتب الأساسي الشهري بالدينار الأردني لحساب مستحقات الوقت الإضافي تلقائياً
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="work-date" className="text-base font-medium">
-                تاريخ العمل
-              </Label>
-              <Input
-                id="work-date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="base-salary" className="text-base font-medium">
-                الراتب الأساسي (دينار أردني)
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="base-salary" className="text-lg font-bold">
+                الراتب الأساسي الشهري (دينار أردني) *
               </Label>
               <Input
                 id="base-salary"
                 type="number"
-                placeholder="أدخل الراتب الأساسي"
+                placeholder="مثال: 1000"
                 value={baseSalary}
                 onChange={(e) => setBaseSalary(e.target.value)}
                 min="0"
                 step="0.01"
+                className="text-xl font-bold h-14 text-center border-2"
               />
-              {baseSalary && Number(baseSalary) > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  قيمة الساعة: {(Number(baseSalary) / 30 / 8).toFixed(3)} دينار | 
-                  يوم عادي (×1.25): {((Number(baseSalary) / 30 / 8) * 1.25).toFixed(3)} دينار | 
-                  عطلة رسمية (×1.5): {((Number(baseSalary) / 30 / 8) * 1.5).toFixed(3)} دينار
-                </p>
-              )}
             </div>
+            
+            {baseSalary && Number(baseSalary) > 0 ? (
+              <div className="bg-background rounded-lg p-4 space-y-2 border-2 border-green-500/30">
+                <h4 className="font-bold text-green-600 mb-3">تفاصيل الحساب:</h4>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="font-medium">قيمة الساعة الأساسية:</span>
+                    <span className="font-bold text-lg">
+                      {(Number(baseSalary) / 30 / 8).toFixed(3)} د.أ
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="font-medium">قيمة ساعة الوقت الإضافي (يوم عادي × 1.25):</span>
+                    <span className="font-bold text-lg text-blue-600">
+                      {((Number(baseSalary) / 30 / 8) * 1.25).toFixed(3)} د.أ
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="font-medium">قيمة ساعة الوقت الإضافي (عطلة رسمية × 1.5):</span>
+                    <span className="font-bold text-lg text-green-600">
+                      {((Number(baseSalary) / 30 / 8) * 1.5).toFixed(3)} د.أ
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                    ✓ الراتب جاهز للحساب - سيتم احتساب المستحقات تلقائياً عند استيراد البيانات
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 dark:bg-yellow-950 rounded-lg p-4 border-2 border-yellow-300 dark:border-yellow-800">
+                <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                  ⚠️ يرجى إدخال الراتب الأساسي لتفعيل حساب المستحقات المالية
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* اختيار التاريخ */}
+      <Card>
+        <CardHeader>
+          <CardTitle>تحديد تاريخ العمل</CardTitle>
+          <CardDescription>اختر التاريخ الذي تنطبق عليه جميع ساعات الخروج المستوردة</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="work-date" className="text-base font-medium">
+              تاريخ العمل
+            </Label>
+            <Input
+              id="work-date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="max-w-xs"
+            />
           </div>
         </CardContent>
       </Card>
