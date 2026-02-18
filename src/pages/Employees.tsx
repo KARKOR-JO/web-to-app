@@ -224,7 +224,7 @@ export default function Employees() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="base_salary">الراتب الأساسي *</Label>
+                  <Label htmlFor="base_salary">الراتب الأساسي (دينار أردني) *</Label>
                   <Input
                     id="base_salary"
                     type="number"
