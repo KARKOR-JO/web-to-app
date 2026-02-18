@@ -44,6 +44,7 @@ export default function Import() {
   const [importing, setImporting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [baseSalary, setBaseSalary] = useState<string>('');
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -279,6 +280,30 @@ export default function Import() {
     setEmployees([]);
   };
 
+  const calculateOvertimePayment = (overtimeHours: number, isHoliday: boolean): number => {
+    if (!baseSalary || Number.isNaN(Number(baseSalary)) || Number(baseSalary) <= 0) {
+      return 0;
+    }
+
+    const salary = Number(baseSalary);
+    // حساب قيمة الساعة الأساسية: الراتب ÷ 30 يوم ÷ 8 ساعات
+    const hourlyRate = salary / 30 / 8;
+    
+    // تطبيق المعامل المناسب
+    const multiplier = isHoliday ? 1.5 : 1.25;
+    
+    // حساب المبلغ المستحق
+    const payment = hourlyRate * multiplier * overtimeHours;
+    
+    return Math.round(payment * 100) / 100; // تقريب لرقمين عشريين
+  };
+
+  const getTotalPayment = (): number => {
+    return importData.reduce((total, row) => {
+      return total + calculateOvertimePayment(row.overtime_hours, row.is_holiday);
+    }, 0);
+  };
+
   const toggleHoliday = (index: number) => {
     const updatedData = [...importData];
     updatedData[index].is_holiday = !updatedData[index].is_holiday;
@@ -365,24 +390,46 @@ export default function Import() {
         </CardContent>
       </Card>
 
-      {/* اختيار التاريخ */}
+      {/* اختيار التاريخ والراتب الأساسي */}
       <Card>
         <CardHeader>
-          <CardTitle>تحديد تاريخ العمل</CardTitle>
-          <CardDescription>اختر التاريخ الذي تنطبق عليه جميع ساعات الخروج المستوردة</CardDescription>
+          <CardTitle>إعدادات الحساب</CardTitle>
+          <CardDescription>حدد التاريخ والراتب الأساسي لحساب مستحقات الوقت الإضافي</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
-            <Label htmlFor="work-date" className="text-base font-medium">
-              تاريخ العمل:
-            </Label>
-            <Input
-              id="work-date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="max-w-xs"
-            />
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="work-date" className="text-base font-medium">
+                تاريخ العمل
+              </Label>
+              <Input
+                id="work-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="base-salary" className="text-base font-medium">
+                الراتب الأساسي (دينار أردني)
+              </Label>
+              <Input
+                id="base-salary"
+                type="number"
+                placeholder="أدخل الراتب الأساسي"
+                value={baseSalary}
+                onChange={(e) => setBaseSalary(e.target.value)}
+                min="0"
+                step="0.01"
+              />
+              {baseSalary && Number(baseSalary) > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  قيمة الساعة: {(Number(baseSalary) / 30 / 8).toFixed(3)} دينار | 
+                  يوم عادي (×1.25): {((Number(baseSalary) / 30 / 8) * 1.25).toFixed(3)} دينار | 
+                  عطلة رسمية (×1.5): {((Number(baseSalary) / 30 / 8) * 1.5).toFixed(3)} دينار
+                </p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -390,18 +437,20 @@ export default function Import() {
       {/* تعليمات */}
       <Alert>
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>تعليمات الاستيراد المبسط</AlertTitle>
+        <AlertTitle>تعليمات الاستيراد وحساب المستحقات</AlertTitle>
         <AlertDescription>
           <ul className="list-disc list-inside space-y-1 mt-2 text-sm">
             <li><strong>الملف يحتاج عمود واحد فقط:</strong> ساعة الانتهاء (وقت الخروج)</li>
             <li><strong>صيغة الساعة:</strong> استخدم النقطة العشرية (مثال: 4.30 = 4:30 مساءً، 6.00 = 6:00 مساءً، 7.15 = 7:15 مساءً)</li>
             <li>ضع كل ساعة خروج في صف منفصل في ملف Excel</li>
-            <li>التاريخ: يتم تحديده مرة واحدة أعلاه ويطبق على جميع السجلات</li>
+            <li><strong>الراتب الأساسي:</strong> أدخل الراتب الأساسي بالدينار الأردني لحساب المستحقات المالية</li>
+            <li><strong>معادلة الحساب:</strong> (الراتب ÷ 30 يوم ÷ 8 ساعات) × المعامل × عدد الساعات</li>
+            <li>التاريخ: يتم تحديده مرة واحدة ويطبق على جميع السجلات</li>
             <li><strong>اختيار الموظف:</strong> عند اختيار موظف للسجل الأول، سيتم تطبيقه تلقائياً على جميع السجلات</li>
             <li>الحساب التلقائي: أي ساعة بعد 4:30 مساءً = وقت إضافي</li>
-            <li><strong>تجاهل الساعات الصفرية:</strong> السجلات التي لا تحتوي على وقت إضافي (قبل 4:30 مساءً) يتم تجاهلها تلقائياً</li>
+            <li><strong>تجاهل الساعات الصفرية:</strong> السجلات التي لا تحتوي على وقت إضافي يتم تجاهلها تلقائياً</li>
             <li>تحديد العطل: اضغط على الزر لتحديد أي يوم كعطلة رسمية</li>
-            <li>المعاملات: يوم عادي (1.25×) | عطلة رسمية (1.5×)</li>
+            <li><strong>المعاملات:</strong> يوم عادي (1.25×) | عطلة رسمية (1.5×)</li>
             <li>حمّل الملف النموذجي لرؤية الصيغة الصحيحة</li>
           </ul>
         </AlertDescription>
@@ -418,6 +467,11 @@ export default function Import() {
                   {pendingCount > 0 && `${pendingCount} في الانتظار`}
                   {successCount > 0 && ` • ${successCount} نجح`}
                   {errorCount > 0 && ` • ${errorCount} فشل`}
+                  {baseSalary && Number(baseSalary) > 0 && (
+                    <span className="font-medium text-primary">
+                      {' • '}الإجمالي: {getTotalPayment().toFixed(2)} دينار أردني
+                    </span>
+                  )}
                 </CardDescription>
               </div>
               <div className="flex gap-2">
@@ -439,6 +493,7 @@ export default function Import() {
                       <TableHead>ساعة الخروج</TableHead>
                       <TableHead>ساعات الوقت الإضافي</TableHead>
                       <TableHead>نوع اليوم</TableHead>
+                      <TableHead>المبلغ المستحق (دينار)</TableHead>
                       <TableHead>الخطأ</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -508,9 +563,29 @@ export default function Import() {
                             </Badge>
                           )}
                         </TableCell>
+                        <TableCell>
+                          {baseSalary && Number(baseSalary) > 0 ? (
+                            <span className="font-bold text-lg text-green-600">
+                              {calculateOvertimePayment(row.overtime_hours, row.is_holiday).toFixed(2)} د.أ
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">أدخل الراتب</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-destructive">{row.error || '-'}</TableCell>
                       </TableRow>
                     ))}
+                    {importData.length > 0 && baseSalary && Number(baseSalary) > 0 && (
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell colSpan={5} className="text-left">
+                          الإجمالي الكلي
+                        </TableCell>
+                        <TableCell className="text-lg text-green-600">
+                          {getTotalPayment().toFixed(2)} د.أ
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
