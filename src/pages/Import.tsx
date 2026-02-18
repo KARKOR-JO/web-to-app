@@ -72,12 +72,13 @@ export default function Import() {
     }
   };
 
-  const calculateOvertimeHours = (endTime: string): number => {
+  const calculateOvertimeHours = (endTime: string, isHoliday: boolean = false): number => {
     try {
-      // ساعة انتهاء الدوام الرسمي: 4:30 مساءً (16:30)
-      const officialEndHour = 16;
-      const officialEndMinute = 30;
-      const officialEndInMinutes = officialEndHour * 60 + officialEndMinute;
+      // في حالة العطلة الرسمية: جميع الساعات من 8:00 صباحاً تعتبر وقت إضافي
+      // في الأيام العادية: الساعات بعد 4:30 مساءً فقط
+      const startHour = isHoliday ? 8 : 16;
+      const startMinute = isHoliday ? 0 : 30;
+      const startInMinutes = startHour * 60 + startMinute;
 
       let endHour = 0;
       let endMinute = 0;
@@ -119,7 +120,7 @@ export default function Import() {
       const endInMinutes = endHour * 60 + endMinute;
 
       // حساب الفرق بالدقائق
-      const overtimeMinutes = Math.max(0, endInMinutes - officialEndInMinutes);
+      const overtimeMinutes = Math.max(0, endInMinutes - startInMinutes);
 
       // تحويل إلى ساعات (مع رقمين عشريين)
       return Math.round((overtimeMinutes / 60) * 100) / 100;
@@ -306,8 +307,22 @@ export default function Import() {
 
   const toggleHoliday = (index: number) => {
     const updatedData = [...importData];
-    updatedData[index].is_holiday = !updatedData[index].is_holiday;
+    const newHolidayStatus = !updatedData[index].is_holiday;
+    updatedData[index].is_holiday = newHolidayStatus;
+    
+    // إعادة حساب ساعات الوقت الإضافي بناءً على الحالة الجديدة
+    // في العطلة الرسمية: جميع الساعات من 8:00 صباحاً تعتبر وقت إضافي
+    // في اليوم العادي: الساعات بعد 4:30 مساءً فقط
+    updatedData[index].overtime_hours = calculateOvertimeHours(
+      updatedData[index].end_time,
+      newHolidayStatus
+    );
+    
     setImportData(updatedData);
+    
+    if (newHolidayStatus) {
+      toast.info('تم تحديد اليوم كعطلة رسمية - جميع الساعات من 8:00 صباحاً تحتسب كوقت إضافي');
+    }
   };
 
   const updateEmployee = (index: number, employeeId: string) => {
@@ -494,9 +509,11 @@ export default function Import() {
             <li><strong>معادلة الحساب:</strong> (الراتب ÷ 30 يوم ÷ 8 ساعات) × المعامل × عدد الساعات</li>
             <li>التاريخ: يتم تحديده مرة واحدة ويطبق على جميع السجلات</li>
             <li><strong>اختيار الموظف:</strong> عند اختيار موظف للسجل الأول، سيتم تطبيقه تلقائياً على جميع السجلات</li>
-            <li>الحساب التلقائي: أي ساعة بعد 4:30 مساءً = وقت إضافي</li>
+            <li><strong>حساب الوقت الإضافي:</strong></li>
+            <li className="mr-4">• يوم عادي: أي ساعة بعد 4:30 مساءً = وقت إضافي</li>
+            <li className="mr-4">• عطلة رسمية: جميع الساعات من 8:00 صباحاً = وقت إضافي</li>
             <li><strong>تجاهل الساعات الصفرية:</strong> السجلات التي لا تحتوي على وقت إضافي يتم تجاهلها تلقائياً</li>
-            <li>تحديد العطل: اضغط على الزر لتحديد أي يوم كعطلة رسمية</li>
+            <li>تحديد العطل: اضغط على الزر لتحديد أي يوم كعطلة رسمية (سيتم إعادة حساب الساعات تلقائياً)</li>
             <li><strong>المعاملات:</strong> يوم عادي (1.25×) | عطلة رسمية (1.5×)</li>
             <li>حمّل الملف النموذجي لرؤية الصيغة الصحيحة</li>
           </ul>
